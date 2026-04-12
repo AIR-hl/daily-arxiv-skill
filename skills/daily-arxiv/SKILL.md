@@ -1,6 +1,6 @@
 ---
 name: daily-arxiv
-description: 编排一条完整的“每日 arXiv”工作流：运行预配置抓取脚本召回候选论文、完成初筛、在需要时创建飞书知识库父日报，并把单篇论文委派给 daily-arxiv-dissect 生成精读与回链。
+description: 编排一条完整的“每日 arXiv”任务工作流：运行预配置抓取脚本召回候选论文、完成初筛、在需要时创建飞书知识库父日报，并把单篇论文委派给 daily-arxiv-dissect 生成精读与回链。
 user-invocable: true
 ---
 # 每日 arXiv 编排
@@ -10,6 +10,7 @@ user-invocable: true
 ## 内置资源
 
 - `scripts/arxiv_fetch.py`：唯一候选召回器。直接运行即可输出分组后的标准化 JSON，其中候选会分为“完全关键词匹配”和“潜在关键词匹配”两组。
+- `config/fetch.yaml`：抓取脚本的默认配置来源，统一维护 `keywords`、`categories`、`hours`、`candidate_pool`。
 - `assets/templates/summary_template.md`：父日报模板。写汇总前必须先读取实际内容。
 - `references/selection-policy.md`：默认筛选偏好和 tie-break 规则。
 - `references/save-targets.md`：飞书知识库保存目标解析、父日报命名和父子文档链接约定。
@@ -23,10 +24,18 @@ python3 -m pip install -r requirements.txt
 python3 skills/daily-arxiv/scripts/arxiv_fetch.py
 ```
 
+上面的命令会直接读取 `skills/daily-arxiv/config/fetch.yaml` 作为默认抓取配置。
+
 只有在用户明确要求调整抓取范围时，才覆盖默认参数，例如：
 
 ```bash
 python3 skills/daily-arxiv/scripts/arxiv_fetch.py --hours 48 --candidate-pool 150
+```
+
+如果需要切换整套默认配置，再显式指定配置文件：
+
+```bash
+python3 skills/daily-arxiv/scripts/arxiv_fetch.py --config /path/to/fetch.yaml
 ```
 
 ## 工作流
@@ -42,8 +51,7 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --hours 48 --candidate-pool 15
 - 禁止在未运行脚本的情况下对候选池做任何假设，包括“候选为空”。也禁止自行构造候选论文。
 - 如果脚本失败，先根据错误信息重试一次；仍失败时停止流程并汇报原因。
 
-3. 在“默认抓取分支”中，读取 `references/selection-policy.md` 做**摘要级初筛**，从候选池中筛出 1-4 篇最值得深读的论文。
-
+3. 在“默认抓取分支”中，读取 `references/selection-policy.md` 作为参考进行**摘要级初筛**，从候选池中筛出 1-4 篇最值得深读的论文。
 4. 在“手动指定论文分支”中，跳过候选筛选，直接准备委派输入。
 
 - 先使用当前可用的网络/抓取工具补齐可信元数据。
@@ -74,7 +82,7 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --hours 48 --candidate-pool 15
 - 保存目标：例如 `wiki_node`、`wiki_space`、知识库 URL，或用户明确给出的知识库名称
 - 主题偏好：用于筛选阶段的轻量偏置，而不是替代实际召回
 
-如果用户没有显式覆盖，直接使用脚本内的默认配置；当用户要求保存但没有单独指定知识库时，默认目标为 `日常学习`。
+如果用户没有显式覆盖，直接使用 `config/fetch.yaml` 中的默认配置；当用户要求保存但没有单独指定知识库时，默认目标为 `日常学习`。
 
 ## 父子任务契约
 

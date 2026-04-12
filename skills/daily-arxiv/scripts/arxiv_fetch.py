@@ -9,6 +9,7 @@ import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Iterable
 
 try:
@@ -19,28 +20,18 @@ except ImportError as exc:
 else:
     ARXIV_IMPORT_ERROR = None
 
+try:
+    import yaml
+except ImportError as exc:
+    yaml = None
+    YAML_IMPORT_ERROR = exc
+else:
+    YAML_IMPORT_ERROR = None
+
 
 _INVALID_QUERY_TERM_RE = re.compile(r'[")(]')
 _VERSION_SUFFIX_RE = re.compile(r"v\d+$")
-
-DEFAULT_KEYWORDS = [
-    "agent",
-    "reinforcement learning",
-    "reward model",
-    "reward modeling",
-    "data synthesis",
-    "dpo",
-]
-
-DEFAULT_CATEGORIES = [
-    "cs.AI",
-    "cs.CL",
-    "cs.LG",
-    "cs.IR"
-]
-
-DEFAULT_HOURS = 24
-DEFAULT_CANDIDATE_POOL = 100
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "fetch.yaml"
 
 
 @dataclass
@@ -51,39 +42,35 @@ class FetchConfig:
     candidate_pool: int
 
 
-def parse_args() -> FetchConfig:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fetch recent arXiv candidates and print normalized JSON."
     )
-    parser.add_argument("--hours", type=int, default=DEFAULT_HOURS, help="Look-back window in hours.")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to YAML config file. Defaults to the skill's bundled fetch config.",
+    )
+    parser.add_argument("--hours", type=int, help="Override look-back window in hours.")
     parser.add_argument(
         "--candidate-pool",
         type=int,
-        default=DEFAULT_CANDIDATE_POOL,
-        help="Maximum number of recent arXiv entries to inspect before local filtering.",
+        help="Override maximum number of recent arXiv entries to inspect before local filtering.",
     )
     parser.add_argument(
         "--keyword",
         action="append",
         dest="keywords",
-        help="Additional keyword to match against title and abstract. Repeatable.",
+        help="Override keywords from config. Repeatable.",
     )
     parser.add_argument(
         "--category",
         action="append",
         dest="categories",
-        help="Additional arXiv category filter. Repeatable.",
+        help="Override categories from config. Repeatable.",
     )
-    args = parser.parse_args()
-
-    keywords = args.keywords if args.keywords else list(DEFAULT_KEYWORDS)
-    categories = args.categories if args.categories else list(DEFAULT_CATEGORIES)
-    return FetchConfig(
-        keywords=keywords,
-        categories=categories,
-        hours=args.hours,
-        candidate_pool=args.candidate_pool,
-    )
+    return parser.parse_args()
 
 
 def unique_nonempty(values: Iterable[str]) -> list[str]:
@@ -98,6 +85,70 @@ def unique_nonempty(values: Iterable[str]) -> list[str]:
         items.append(normalized)
 
     return items
+
+
+def load_yaml_config(path: Path) -> dict[str, object]:
+    if yaml is None:
+        raise RuntimeError(
+            "missing dependency 'PyYAML'; install it with `python3 -m pip install -r requirements.txt`"
+        ) from YAML_IMPORT_ERROR
+    if not path.is_file():
+        raise ValueError(f"config file not found: {path}")
+
+    with path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle)
+
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ValueError("config file must contain a top-level mapping")
+
+    return data
+
+
+def require_string_list(value: object, field_name: str) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(f"config field '{field_name}' must be a list of strings")
+    if any(not isinstance(item, str) for item in value):
+        raise ValueError(f"config field '{field_name}' must be a list of strings")
+    return unique_nonempty(value)
+
+
+def require_int(value: object, field_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"config field '{field_name}' must be an integer")
+    return value
+
+
+def resolve_config(args: argparse.Namespace) -> FetchConfig:
+    raw_config = load_yaml_config(args.config)
+
+    if "keywords" not in raw_config:
+        raise ValueError(f"config field 'keywords' is required: {args.config}")
+    if "categories" not in raw_config:
+        raise ValueError(f"config field 'categories' is required: {args.config}")
+    if "hours" not in raw_config:
+        raise ValueError(f"config field 'hours' is required: {args.config}")
+    if "candidate_pool" not in raw_config:
+        raise ValueError(f"config field 'candidate_pool' is required: {args.config}")
+
+    keywords = args.keywords if args.keywords else require_string_list(raw_config["keywords"], "keywords")
+    categories = (
+        args.categories if args.categories else require_string_list(raw_config["categories"], "categories")
+    )
+    hours = args.hours if args.hours is not None else require_int(raw_config["hours"], "hours")
+    candidate_pool = (
+        args.candidate_pool
+        if args.candidate_pool is not None
+        else require_int(raw_config["candidate_pool"], "candidate_pool")
+    )
+
+    return FetchConfig(
+        keywords=unique_nonempty(keywords),
+        categories=unique_nonempty(categories),
+        hours=hours,
+        candidate_pool=candidate_pool,
+    )
 
 
 def ensure_utc(value: datetime) -> datetime:
@@ -252,8 +303,8 @@ def collect_records(config: FetchConfig) -> dict[str, list[dict[str, object]]]:
 
 
 def main() -> int:
-    config = parse_args()
     try:
+        config = resolve_config(parse_args())
         records = collect_records(config)
     except (RuntimeError, ValueError) as exc:
         print(str(exc), file=sys.stderr)

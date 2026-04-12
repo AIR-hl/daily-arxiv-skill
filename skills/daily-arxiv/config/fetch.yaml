@@ -1,0 +1,26 @@
+# Canonical defaults for skills/daily-arxiv/scripts/arxiv_fetch.py.
+# Command-line flags override these values when needed.
+# During installation, the Agent should ask the user for:
+# 1. recall keywords
+# 2. arXiv categories
+# 3. one-sentence work direction
+# 4. daily maximum papers to dissect
+# Then write the answers into this file.
+
+hours: 24 # 召回时间范围，默认为最近 24 小时内更新的论文
+candidate_pool: 100 # 每次抓取的候选论文数量，默认为 100 篇
+
+keywords: # 召回关键词列表，默认为以下内容
+  - agent
+  - reinforcement learning
+  - reward model
+  - data synthesis
+  - dpo
+  - policy optimization
+
+categories: # 召回类别列表，默认为以下内容
+  - cs.AI
+  - cs.CL
+  - cs.LG
+  - cs.IR
+  - cs.CV
