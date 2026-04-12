@@ -10,12 +10,15 @@
 
 ## 快速使用
 
-提示你的 Agent 获取仓库：`https://github.com/AIR-hl/daily-arxiv-skill` 并安装该 skill。
+1. 提示你的 Agent 获取仓库：`https://github.com/AIR-hl/daily-arxiv-skill` 并安装该 skill。
 
-⚠️ 安装后，请进入 skill 安装目录，例如 `~/.codex/skills/daily-arxiv/`，手动修改以下配置文件：
+2. 安装后，请进入 skill 安装目录，例如 `~/.codex/skills/daily-arxiv/`，手动修改以下配置文件：
 
-1. `config/fetch.yaml`：召回论文的相关配置，`categories` 可参考 [arXiv taxonomy](https://arxiv.org/category_taxonomy)。
-2. `references/description.md`：用户对自身工作内容、研究兴趣和筛选偏好的说明，可帮助模型更准确地筛选论文。
+  - `config/fetch.yaml`：召回论文的相关配置，`categories` 可参考 [arXiv taxonomy](https://arxiv.org/category_taxonomy)。
+  - `references/description.md`：用户对自身工作内容、研究兴趣和筛选偏好的说明，可帮助模型更准确地筛选论文。
+
+3. 配置飞书 cli，具体参考：https://github.com/larksuite/cli
+4. 开始工作！
 
 ## 适用场景
 
@@ -30,19 +33,19 @@
 **设置每日定时任务（推荐入口）：**
 
 ```text
-每个工作日上午 08:00，执行「每日 arXiv」任务，结果保存到飞书「日常学习」知识库中的「每日Arxiv」文件下。
+每个工作日上午 08:00，执行「每日 arXiv」任务，筛选出1-4篇论文，阅读结果保存到飞书「日常学习」知识库中的「每日Arxiv」文件下。
 ```
 
 **临时手动触发：**
 
 ```text
-精读这篇论文：https://arxiv.org/abs/2504.xxxxx 作为今天的「每日Arxiv」任务，保存到「日常学习」知识库。
+精读这篇论文：https://arxiv.org/abs/2504.xxxxx 作为今天的「每日Arxiv」任务，结果保存到「日常学习」知识库。
 ```
 
 **覆盖抓取范围：**
 
 ```text
-执行今天的「每日 arXiv」任务，使用最近 48 小时窗口，candidate pool 调整到 150，结果保存到飞书「日常学习」知识库。
+执行今天的「每日 arXiv」任务，使用最近 48 小时窗口，candidate pool 调整到 150，筛选出1-4篇论文，阅读结果保存到飞书「日常学习」知识库。
 ```
 
 ## 目录结构
