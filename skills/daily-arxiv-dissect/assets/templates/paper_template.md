@@ -1,5 +1,5 @@
 - 原论文标题：{title}
-- 来源：{pdf url or source description}
+- 链接：{PDF url or source description}
 - 作者：{author list}
 - 发表：{venue/year or best available description}
 
@@ -9,11 +9,7 @@
 
 ## 彻底剖析
 
-{把方法机制讲透。优先使用“机制图 + 解释 + 承重类比”的连贯写法，让读者能一路跟下来。}
-
-{如果需要图示，默认使用 ASCII，如果原文图示表达清晰对理解有帮助，也可以直接插入论文原图}
-
-{如果核心公式对理解机制至关重要，就保留关键公式。}
+{把方法机制讲透，包含核心图示与重要公式。}
 
 ## 核心概念
 
