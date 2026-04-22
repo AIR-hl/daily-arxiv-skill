@@ -251,14 +251,14 @@ def result_to_record(
     return {
         "id": arxiv_id,
         "title": result.title,
-        "authors": [author.name for author in result.authors],
+        "authors": [author.name for author in result.authors][:3],
         "url": abs_url,
         "pdf_url": pdf_url,
         "source_url": source_url,
         "published": published_at.isoformat().replace("+00:00", "Z"),
         "categories": categories,
-        "matched_keywords": hits,
         "match_type": "exact" if hits else "potential",
+        "matched_keywords": hits,
         "comment": result.comment if result.comment is not None else "",
         "abstract": result.summary,
     }

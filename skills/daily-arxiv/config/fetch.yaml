@@ -17,10 +17,10 @@ keywords: # 召回关键词列表，默认为以下内容
   - data synthesis
   - dpo
   - policy optimization
+  - role playing
 
 categories: # 召回类别列表，默认为以下内容
   - cs.AI
   - cs.CL
   - cs.LG
   - cs.IR
-  - cs.CV
