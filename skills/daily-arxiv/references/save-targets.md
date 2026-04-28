@@ -15,34 +15,18 @@
 
 ## 父日报规则
 
-- **父日报标题必须严格基于任务执行当天日期**，格式为 `YYYY-MM-DD日报`。禁止添加其他任何前缀、后缀或说明文字。
+- **父日报标题必须严格基于任务执行当天日期**，格式为 `YYYY-MM-DD日报`，例如 `2026-04-11日报`。禁止添加其他任何前缀、后缀或说明文字。
 - 标题放在 `--title`，正文不要再重复同名一级标题。
-- 父日报正文必须基于 `assets/templates/summary_template.md` 组织，而不是凭印象临时拼结构。
-
-## 子精读标题规则
-
-- **子精读标题默认格式为 `{short_title} | {organization} | {publication}`。**
-- 这个标题由完整阅读论文的子 skill 在成文阶段自行决定，父 skill 不预先命名。
-- `short_title` 优先使用论文里最稳定、最易检索的短标题：
-  - 先用方法名、模型名或作者明确提出的简称
-  - 如果没有合适简称，则使用原论文标题的精简版本
-- `organization` 优先使用读者最容易识别的主导机构、团队或公司名称；如果论文是明显的多机构合作且没有单一主导方，可使用 `Multi-org`
-- `publication` 优先使用会议或期刊简称加年份，例如 `ICLR 2026`、`ACL 2025`；如果当前只有 arXiv 版本，则直接写 `arXiv`
-- 如果某一段信息缺失，子 skill 应优先补成可读值，而不是退回内部 id：
-  - `organization` 缺失时优先写 `Unknown Org`
-  - `publication` 缺失时优先写 `arXiv`
-- 不要把 `paper_id`、文件名或内部 token 放进面向读者的标题里，除非用户明确要求。
+- 父日报正文必须基于 `assets/templates/summary_template.md` 组织，而不是随机组织文章结构。
 
 ## 父 -> 子落点传递
 
 父 skill 在创建完父日报后，应把解析好的落点和父日报引用一起传给子 skill。
 
-- 知识库模式：传 `resolved_target.mode=wiki`，并确保其中包含父日报自身对应的 `wiki_node`，或等价的可创建子页面引用。
-- 在知识库模式下，子 skill **必须**把单篇精读创建为父日报的直接子文档；禁止平级创建到知识库根节点、父日报的上层节点或其他位置。
-- 无保存模式：传 `resolved_target.mode=none`，且不创建飞书文档。
+- 知识库模式：传 `save_mode=wiki`。
+- 无保存模式：传 `save_mode=none`，且不创建飞书文档。
 
-同时把 `parent_url` 传给子 skill，作为父日报引用；在知识库模式下它是必填的，至少包含：
-
+同时把 `parent_doc` 传给子 skill，作为父日报引用；子 skill 据此确定子文档的保存位置，至少包含：
 - `doc_url`
 - `doc_id`
 - `title`

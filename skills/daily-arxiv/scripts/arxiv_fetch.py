@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 try:
     import arxiv
@@ -32,6 +34,10 @@ else:
 _INVALID_QUERY_TERM_RE = re.compile(r'[")(]')
 _VERSION_SUFFIX_RE = re.compile(r"v\d+$")
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "fetch.yaml"
+ARXIV_HTML_TIMEOUT_SECONDS = 10
+ARXIV_HTML_UNAVAILABLE = "unavailable"
+ARXIV_HTML_UNKNOWN = "unknown"
+ARXIV_HTML_USER_AGENT = "Mozilla/5.0 (compatible; daily-arxiv-fetch/1.0)"
 
 
 @dataclass
@@ -222,6 +228,37 @@ def normalized_arxiv_id(result: arxiv.Result) -> str:
     return _VERSION_SUFFIX_RE.sub("", short_id)
 
 
+def probe_arxiv_html_url(url: str) -> str:
+    """Return a verified HTML URL, ``unavailable``, or ``unknown``."""
+    if not url:
+        return ARXIV_HTML_UNKNOWN
+
+    for method in ("HEAD", "GET"):
+        request = Request(url, method=method, headers={"User-Agent": ARXIV_HTML_USER_AGENT})
+        try:
+            with urlopen(request, timeout=ARXIV_HTML_TIMEOUT_SECONDS) as response:
+                status = getattr(response, "status", None) or response.getcode()
+        except HTTPError as exc:
+            if exc.code == 404:
+                return ARXIV_HTML_UNAVAILABLE
+            if method == "GET":
+                return ARXIV_HTML_UNKNOWN
+            continue
+        except (TimeoutError, OSError, URLError):
+            if method == "GET":
+                return ARXIV_HTML_UNKNOWN
+            continue
+
+        if 200 <= status < 300:
+            return url
+        if status == 404:
+            return ARXIV_HTML_UNAVAILABLE
+        if method == "GET":
+            return ARXIV_HTML_UNKNOWN
+
+    return ARXIV_HTML_UNKNOWN
+
+
 def matched_keywords(text: str, keywords: Iterable[str]) -> list[str]:
     lowered = text.lower()
     return [keyword for keyword in unique_nonempty(keywords) if keyword.lower() in lowered]
@@ -245,14 +282,16 @@ def result_to_record(
 
     arxiv_id = normalized_arxiv_id(result)
     abs_url = f"https://arxiv.org/abs/{arxiv_id}"
+    html_url = probe_arxiv_html_url(f"https://arxiv.org/html/{arxiv_id}")
     pdf_url = result.pdf_url or f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     source_url = f"https://arxiv.org/e-print/{arxiv_id}"
 
     return {
         "id": arxiv_id,
         "title": result.title,
-        "authors": [author.name for author in result.authors][:3],
+        "partial_authors": [author.name for author in result.authors][:3],
         "url": abs_url,
+        "html_url": html_url,
         "pdf_url": pdf_url,
         "source_url": source_url,
         "published": published_at.isoformat().replace("+00:00", "Z"),

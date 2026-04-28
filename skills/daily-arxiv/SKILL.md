@@ -56,34 +56,32 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --config /path/to/fetch.yaml
 
 - 先使用当前可用的网络/抓取工具补齐可信元数据。
 - 如果输入是本地 PDF 路径，请直接使用该 PDF 作为原文入口。
+- 如果输入可解析为 arXiv 论文，请同时补齐 `html_url`，语义与抓取脚本输出保持一致：真实 URL、`unavailable` 或 `unknown`。
 - 禁止手写论文元数据；必须通过可信入口补齐，或直接使用用户提供的本地 PDF。
 
 5. 如果用户要求保存到飞书知识库，读取 `references/save-targets.md`，在父 skill 内完成保存目标解析并创建父日报。
 6. 为每篇入选论文（或手动指定的论文）各启动一个独立的 `daily-arxiv-dissect` 子任务；约束细则见「委派硬约束」章节。
+- 委派时将候选池里的 `html_url` 原样传递；仅当值为 `unknown` 时，允许在委派前做一次轻量重试：成功则改成真实 URL，明确 404 则改成 `unavailable`，仍失败则保留 `unknown`。
 7. 收集子任务结果，检查返回契约是否完整，再用 `assets/templates/summary_template.md` 生成父日报或文本汇总。
 
 父 skill 在这一步只能做“是否值得送去深读”的判断，不要把摘要级信号误写成对论文真实增量已经成立的结论。
-
-创建父日报时，标题必须严格使用下面的格式：`YYYY-MM-DD日报`，例如 `2026-04-11日报`；不要添加任何其他的额外说明文字。
 
 ## 筛选阶段的硬边界
 
 - 在入选名单确定之前，父 skill 只允许使用抓取脚本返回的候选字段做判断，例如 `title`、`abstract`、`comment`、`categories`、`matched_keywords`、`authors`、`published`、`url`。
 - 在筛选阶段，**禁止**下载 PDF，**禁止**打开论文正文，**禁止**读取 `pdf_url` 或 `source_url`，也不要做“轻量精读核对”。
-- 全文阅读、方法核对、实验核对和真实增量判断是 `daily-arxiv-dissect` 的专属职责，不属于父 skill。
-- 如果用户手动指定了单篇论文，则不进入筛选阶段；父 skill 的职责变为补齐论文入口信息、处理保存目标、创建父日报并委派子 skill。
+- 全文阅读、方法核对、实验核对和真实增量判断属于使用 `daily-arxiv-dissect` 的子任务，不要在主线程中进行。
+- 如果用户手动指定了单篇论文，则不需要进入筛选阶段，请直接补齐论文入口信息、处理保存目标、创建父日报并委派精读子任务。
 
 ## 委派硬约束
 
 > **这是强制约束，不是推荐流程、风格偏好或可自行权衡的优化项。**
 
-- 一旦确定了入选论文，或用户手动指定了单篇论文，父 skill **必须**为每一篇论文启动一个独立的 `daily-arxiv-dissect` 子任务。
-- 父 skill **禁止**在主线程中执行以下任何动作：阅读论文正文、下载或解析 PDF、打开 TEX 源码、核对方法/实验细节、撰写单篇精读正文。
+- 一旦确定了入选论文，或用户手动指定了单篇论文，**必须**为每一篇论文**分别**启动**独立**的 `daily-arxiv-dissect` 子任务。
+- **禁止**在主线程中执行以下任何动作：阅读论文正文、下载或解析 PDF、打开 TEX 源码、核对方法/实验细节、撰写单篇精读正文。
 - 以下理由不构成例外：为了连续性、为了速度、为了上下文方便、“已经打开了不如顺便读完”。
-- 即使只有一篇论文，也必须委派给独立的 `daily-arxiv-dissect` 子任务；“只有一篇所以直接读”不是例外。
-- 多篇论文必须一篇一个子任务；禁止把多篇论文合并进同一个 `daily-arxiv-dissect` 子任务。
-- 如果当前运行环境没有可用的子任务/委派机制，父 skill 必须停止在委派点，向用户说明无法继续执行硬约束；禁止降级为主线程精读。
-- 如果模型已经在主线程中开始读取论文正文或撰写精读，**必须**立即停止该动作，回到委派流程；已经读取到的正文细节不得作为父日报的精读结论继续使用。
+- 如果当前运行环境没有可用的子任务/委派机制，必须停止在委派点，向用户说明无法继续执行硬约束；禁止降级为主线程精读。
+- 如果已经在主线程中开始读取论文正文或撰写精读，**必须**立即停止该动作，回到委派流程；已经读取到的正文细节不得作为父日报的精读结论继续使用。
 
 委派时传递的字段与格式要求见「父子任务契约」章节。
 
@@ -104,6 +102,7 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --config /path/to/fetch.yaml
 
 - `title`
 - `url`
+- `html_url`
 - `pdf_path`
 - `pdf_url`
 - `source_url`
@@ -112,14 +111,17 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --config /path/to/fetch.yaml
 - `published`
 - `categories`
 - `matched_keywords`
-- `resolved_target`
-- `parent_url`
+- `save_mode`
+- `parent_doc`
 
 其中：
 
-- `url`、`pdf_path`、`pdf_url`、`source_url` 不必同时存在，但至少要给出一个可用于获取原文的可信入口
-- `resolved_target` 由父 skill 解析完成，子 skill 不应再次做广泛的落点决策；在知识库模式下，它还应包含父日报对应的 `wiki_node`，或等价的可创建子页面引用
-- `parent_url` 是父日报引用；在知识库模式下，子 skill 既用它识别父日报，也要据此把子精读创建为父日报的子文档。至少包含 `doc_url`、`doc_id`、`title`
+- `html_url` 只使用一个字段承载三种状态：真实页面 URL、`unavailable`、`unknown`
+- 默认抓取分支中的 `html_url` 由抓取脚本预先校验；父 skill 不应对已确定为真实 URL 或 `unavailable` 的值重复验证
+- 只有当 `html_url=unknown` 时，父 skill 才允许在委派前重试一次轻量校验
+- `url`、`html_url`、`pdf_path`、`pdf_url`、`source_url` 不必同时存在，但至少要给出一个可用于获取原文的可信入口
+- `save_mode`：由父 skill 解析完成，取值为 `wiki` 或 `none`；子 skill 不应再次做广泛的落点决策
+- `parent_doc`：父日报的文档引用，也是知识库模式下子 skill 确定挂载位置的**唯一依据**；子 skill 必须据此把子精读创建为父日报的直接子文档。至少包含 `doc_url`、`doc_id`、`title`
 
 子 skill 的返回契约固定为：
 
@@ -146,5 +148,3 @@ python3 skills/daily-arxiv/scripts/arxiv_fetch.py --config /path/to/fetch.yaml
 - 入选论文列表与入选原因；如果走手动指定分支，则说明“用户指定，直接精读”
 - 每篇论文的 1 句总结
 - 如果有保存到知识库，父日报链接与各子精读链接
-
-把个人研究偏好、机构优先级和飞书命名细则放在 `references/` 中按需加载，不要在主流程里重复硬编码。

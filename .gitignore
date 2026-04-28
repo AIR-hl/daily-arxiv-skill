@@ -32,3 +32,14 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Agent Caches
+.claude/
+.cursor/
+
+# Package Manager Caches
+.uv-cache/
+.uv-python/
+.npm-cache/
+.npm/
+node_modules/

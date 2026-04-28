@@ -1,5 +1,5 @@
 - 原论文标题：{title}
-- 链接：{PDF url or source description}
+- 链接：{best available paper entry; prefer abs/html/pdf links over a PDF-only description}
 - 作者：{author list}
 - 发表：{venue/year or best available description}
 
