@@ -1,7 +1,7 @@
-- 原论文标题：{title}
-- 链接：{best available paper entry; prefer abs/html/pdf links over a PDF-only description}
-- 作者：{author list}
-- 发表：{venue/year or best available description}
+- 标题：{原论文完整标题}
+- 链接：{abs / html / pdf 链接其一}
+- 作者：{作者列表，如果人数过多则保留1-3个主要作者即可}
+- 发表：{发表的会议、期刊或Arxiv，以及年份}
 
 ## 动机
 
@@ -12,7 +12,6 @@
 {把读者进入方法剖析之前必须过的几道关交代清楚。不局限于术语定义，也必须包括作者对问题的重新划定、关键假设，或后文赖以成立的核心论断。}
 
 {对于核心概念与假设，请尽可能说清三件事：它准确的含义是什么、它与已有认知的差别或联系、以及为什么少了它后文的方法就走不通。}
-
 
 ## 方法剖析
 
