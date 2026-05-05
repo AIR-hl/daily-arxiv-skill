@@ -38,6 +38,7 @@ ARXIV_HTML_TIMEOUT_SECONDS = 10
 ARXIV_HTML_UNAVAILABLE = "unavailable"
 ARXIV_HTML_UNKNOWN = "unknown"
 ARXIV_HTML_USER_AGENT = "Mozilla/5.0 (compatible; daily-arxiv-fetch/1.0)"
+ARXIV_MAX_PAGE_SIZE = 2000
 
 
 @dataclass
@@ -320,7 +321,11 @@ def collect_records(config: FetchConfig) -> dict[str, list[dict[str, object]]]:
     cutoff = now - timedelta(hours=config.hours)
     query = build_search_query(config.keywords, config.categories, cutoff, now)
 
-    client = arxiv.Client(num_retries=3, delay_seconds=3)
+    client = arxiv.Client(
+        page_size=min(config.candidate_pool, ARXIV_MAX_PAGE_SIZE),
+        num_retries=3,
+        delay_seconds=3,
+    )
     search = arxiv.Search(query=query, max_results=config.candidate_pool)
 
     exact_records: list[dict[str, object]] = []

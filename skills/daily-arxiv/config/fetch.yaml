@@ -8,7 +8,7 @@
 # Then write the answers into this file.
 
 hours: 24 # 召回时间范围，默认为最近 24 小时内更新的论文
-candidate_pool: 100 # 每次抓取的候选论文数量，默认为 100 篇
+candidate_pool: 50 # 每次抓取的候选论文数量，默认为 50 篇
 
 keywords: # 召回关键词列表，默认为以下内容
   - agent
