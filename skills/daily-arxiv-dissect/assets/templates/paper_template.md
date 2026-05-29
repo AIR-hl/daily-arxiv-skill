@@ -1,3 +1,4 @@
+# {short_title | organization | publication}
 - 标题：{原论文完整标题}
 - 链接：{abs / html / pdf 链接其一}
 - 作者：{作者列表，如果人数过多则保留1-3个主要作者即可}
