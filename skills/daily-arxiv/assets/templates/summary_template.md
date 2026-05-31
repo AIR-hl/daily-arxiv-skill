@@ -5,21 +5,21 @@
 
 ## 入选论文
 
-### 1. 子文档标题
+### 1. {论文标题}
 
 - 关键词：{key words}
 - 入选原因：{selection reason}
 - 一句话摘要：{one-line summary}
 - 精读链接：{child document url or "未保存"}
 
-### 2. 子文档标题
+### 2. {论文标题}
 
 - 关键词：{key words}
 - 入选原因：{selection reason}
 - 一句话摘要：{one-line summary}
 - 精读链接：{child document url or "未保存"}
 
-### 3. 子文档标题
+### 3. {论文标题}
 
 - 关键词：{key words}
 - 入选原因：{selection reason}
